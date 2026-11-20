@@ -1,26 +1,22 @@
 // Neon Bay: hands the game in to make.fun.
 // Copies game/ and screenshots/ from beside this file into the output directory
 // (MAKEFUN_OUTPUT_DIR, or /output inside the grader) and writes dossier.json
-// there with the vendored make.fun library. Every destination is cleared first:
-// the grader mounts outputs read-only, so a second run must remove-then-write.
+// there with the vendored make.fun library. The grader's /output is a writable
+// mounted volume: never remove it (rmSync on a mount point throws EBUSY), just
+// mkdir into it and let cpSync overwrite existing files.
 // Run locally: mkdir -p out && MAKEFUN_OUTPUT_DIR=out node main.ts
 
-import { cpSync, existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { buildDossier } from './vendor/makefun-game.ts';
 
 const repoRoot = fileURLToPath(new URL('.', import.meta.url));
-const outDir = process.env.MAKEFUN_OUTPUT_DIR ?? '/output';
+const outDir = process.env.MAKEFUN_OUTPUT_DIR || '/output';
 
-function freshDir(path) {
-  rmSync(path, { recursive: true, force: true });
-  mkdirSync(path, { recursive: true });
-}
-
-freshDir(outDir);
+mkdirSync(outDir, { recursive: true });
 cpSync(join(repoRoot, 'game'), join(outDir, 'game'), { recursive: true });
-freshDir(join(outDir, 'screenshots'));
+mkdirSync(join(outDir, 'screenshots'), { recursive: true });
 if (existsSync(join(repoRoot, 'screenshots'))) {
   cpSync(join(repoRoot, 'screenshots'), join(outDir, 'screenshots'), { recursive: true });
 }
